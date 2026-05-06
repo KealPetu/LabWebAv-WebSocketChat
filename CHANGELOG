@@ -1,0 +1,16 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-05-06
+
+### Added
+- **Campo de Usuario**: Agregado un campo para ingresar el nombre de usuario, que debe completarse antes de mostrar la pantalla del chat.
+- **Acumulación de Mensajes**: Implementada la acumulación de mensajes enviados y recibidos en el chat.
+- **Alineación de Mensajes**: Los mensajes enviados se muestran a la izquierda, los recibidos a la derecha.
+- **Integración de Bootstrap**: Mejorado el diseño del chat usando Bootstrap con colores personalizados según las preferencias del estudiante.
+- **Diseño Responsivo**: El chat web es completamente responsivo para diferentes tamaños de pantalla.
+- **Modo Claro/Oscuro**: Agregada la opción para alternar entre modos claro y oscuro.
