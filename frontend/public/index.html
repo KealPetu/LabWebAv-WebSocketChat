@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPN FIS Chat WebSocket</title>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <h1>Chat WebSocket</h1>
+
+    <div>
+        <label>Usuario: </label>
+        <input type="text" id="usernameInput" placeholder="Ingresa tu nombre" maxlength="20">
+    </div>
+
+    <div id="messages"></div>
+
+    <div>
+        <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." maxlength="500">
+        <button id="sendBtn">Enviar</button>
+    </div>
+
+    <div id="status" style="margin-top: 10px; font-size: 12px; color: #666;"></div>
+    <script src="./script.js"></script>
+</body>
+
+</html>
