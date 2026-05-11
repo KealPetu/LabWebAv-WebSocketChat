@@ -2,15 +2,20 @@ let ws;
 let connected = false;
 let currentUser = '';
 
+// Vistas
 const loginScreen = document.getElementById('loginScreen');
 const chatScreen = document.getElementById('chatScreen');
+// Inputs y botones
 const messages = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
-const usernameInput = document.getElementById('usernameInput');
-const enterChatBtn = document.getElementById('enterChatBtn');
 const sendBtn = document.getElementById('sendBtn');
 const status = document.getElementById('status');
 const themeToggle = document.getElementById('themeToggle');
+// Login inputs y botones
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
 
 // 1. Lógica del Tema (Claro / Oscuro)
 themeToggle.addEventListener('click', () => {
@@ -26,58 +31,54 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
-// 2. Lógica de Ingreso (Validar usuario y mostrar chat)
-function enterChat() {
-    const username = usernameInput.value.trim();
-    if (!username) {
-        alert('Por favor ingresa tu nombre de usuario para continuar.');
-        usernameInput.focus();
+// 2. Función para manejar la autenticación
+async function authenticate(mode) {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+        alert("Por favor rellena todos los campos");
         return;
     }
-    currentUser = username;
 
-    // Ocultar login, mostrar chat
-    loginScreen.classList.add('d-none');
-    chatScreen.classList.remove('d-none');
+    try {
+        let userCredential;
+        if (mode === 'login') {
+            userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        } else {
+            userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        }
 
-    // Iniciar conexión y preparar input
-    connect();
-    messageInput.focus();
+        // Obtener el Token de Seguridad
+        const token = await userCredential.user.getIdToken();
+        const username = userCredential.user.email.split('@')[0]; // Usar parte del email como nombre
+
+        // Conectar al WebSocket enviando el token
+        connectWebSocket(username, token);
+        
+        loginScreen.style.display = 'none';
+        chatScreen.style.display = 'flex';
+
+    } catch (error) {
+        alert("Error de autenticación: " + error.message);
+    }
 }
 
-enterChatBtn.addEventListener('click', enterChat);
-usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') enterChat();
-});
+loginBtn.addEventListener('click', () => authenticate('login'));
+registerBtn.addEventListener('click', () => authenticate('register'));
 
-// 3. Conexión WebSocket
-function connect() {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const backendPort = 3001;
-    ws = new WebSocket(`${protocol}//${location.hostname}:${backendPort}`);
+// 3. Conexión WebSocket con token de autenticación
+function connectWebSocket(username, token) {
+    // Pasamos el token en la URL como query parameter para que el backend lo valide
+    socket = new WebSocket(`ws://localhost:3001?username=${username}&token=${token}`);
 
-    ws.onopen = () => {
-        connected = true;
-        status.textContent = 'En línea';
-        status.className = 'badge bg-success';
-        sendBtn.disabled = false;
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        displayMessage(data.username, data.message);
     };
 
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        addMessage(msg.username, msg.text, msg.timestamp);
-    };
-
-    ws.onclose = () => {
-        connected = false;
-        status.textContent = 'Reconectando...';
-        status.className = 'badge bg-danger';
-        sendBtn.disabled = true;
-        setTimeout(connect, 3000);
-    };
-
-    ws.onerror = (error) => {
-        console.error('Error WebSocket:', error);
+    socket.onclose = () => {
+        console.log('Conexión cerrada');
     };
 }
 
