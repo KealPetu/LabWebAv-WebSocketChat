@@ -42,12 +42,35 @@ wss.on('connection', async (ws, req) => {
     console.log(`✅ Conexión autorizada para: ${decodedToken.email}`);
 
     ws.user = { uid: decodedToken.uid, email: decodedToken.email, username: username };
+    // RECUPERAR HISTORIAL DE MENSAJES
+    try {
+      const snapshot = await db.collection('messages')
+        .orderBy('timestamp', 'asc') // Orden cronológico
+        .limitToLast(30)            // Solo los últimos 30 para no saturar
+        .get();
+
+      const history = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          username: data.username,
+          text: data.text,
+          // Formatear el timestamp para el frontend
+          timestamp: new Date(data.timestamp).toLocaleTimeString()
+        };
+      });
+
+      // Enviar el historial solo al usuario que se acaba de conectar
+      ws.send(JSON.stringify({ type: 'history', data: history }));
+
+    } catch (err) {
+      console.error('Error recuperando historial:', err);
+    }
     clients.add(ws);
 
     ws.on('message', async (data) => {
       try {
         const messageData = JSON.parse(data);
-        
+
         const newMessage = {
           username: ws.user.username,
           text: messageData.text,
@@ -60,8 +83,8 @@ wss.on('connection', async (ws, req) => {
 
         // Reenviar a todos excepto al remitente
         const broadcastData = JSON.stringify({
-            ...newMessage,
-            timestamp: new Date().toLocaleTimeString() // Formato legible para el cliente
+          ...newMessage,
+          timestamp: new Date().toLocaleTimeString() // Formato legible para el cliente
         });
 
         clients.forEach((client) => {
