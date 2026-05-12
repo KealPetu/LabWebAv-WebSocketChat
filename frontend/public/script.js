@@ -54,10 +54,11 @@ async function authenticate(mode) {
         const username = userCredential.user.email.split('@')[0]; // Usar parte del email como nombre
 
         // Conectar al WebSocket enviando el token
+        currentUser = username;
         connectWebSocket(username, token);
         
-        loginScreen.style.display = 'none';
-        chatScreen.style.display = 'flex';
+        loginScreen.classList.add('d-none');
+        chatScreen.classList.remove('d-none');
 
     } catch (error) {
         alert("Error de autenticación: " + error.message);
@@ -70,14 +71,25 @@ registerBtn.addEventListener('click', () => authenticate('register'));
 // 3. Conexión WebSocket con token de autenticación
 function connectWebSocket(username, token) {
     // Pasamos el token en la URL como query parameter para que el backend lo valide
-    socket = new WebSocket(`ws://localhost:3001?username=${username}&token=${token}`);
+    ws = new WebSocket(`ws://localhost:3001?username=${username}&token=${token}`);
 
-    socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        displayMessage(data.username, data.message);
+    ws.onopen = () => {
+        connected = true;
+        status.textContent = 'Conectado';
+        status.classList.remove('bg-secondary');
+        status.classList.add('bg-success');
     };
 
-    socket.onclose = () => {
+    ws.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        addMessage(data.username, data.text, data.timestamp);
+    });
+
+    ws.onclose = () => {
+        connected = false;
+        status.textContent = 'Desconectado';
+        status.classList.remove('bg-success');
+        status.classList.add('bg-secondary');
         console.log('Conexión cerrada');
     };
 }
@@ -120,6 +132,7 @@ function sendMessage() {
     // Se asume que el servidor repite el mensaje con un timestamp
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     ws.send(JSON.stringify({ username: currentUser, text, timestamp }));
+    addMessage(currentUser, text, timestamp);
     messageInput.value = '';
 }
 
@@ -132,4 +145,4 @@ messageInput.addEventListener('keypress', (e) => {
 });
 
 // Focus inicial en la pantalla de login
-usernameInput.focus();
+emailInput.focus();
