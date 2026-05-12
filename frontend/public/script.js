@@ -56,7 +56,7 @@ async function authenticate(mode) {
         // Conectar al WebSocket enviando el token
         currentUser = username;
         connectWebSocket(username, token);
-        
+
         loginScreen.classList.add('d-none');
         chatScreen.classList.remove('d-none');
 
@@ -82,7 +82,15 @@ function connectWebSocket(username, token) {
 
     ws.addEventListener('message', (event) => {
         const data = JSON.parse(event.data);
-        addMessage(data.username, data.text, data.timestamp);
+        if (data.type === 'history') {
+            data.data.forEach(msg => {
+                displayMessage(msg.username, msg.text, msg.timestamp);
+            });
+        }
+        // Si es un mensaje normal de un usuario en tiempo real
+        else {
+            displayMessage(data.username, data.text, data.timestamp);
+        }
     });
 
     ws.onclose = () => {
