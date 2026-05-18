@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-18
+
+### Added
+- **Autenticación de Usuarios**: Implementada una página de login y registro de cuentas utilizando Firebase Authentication (Correo/Contraseña).
+- **Persistencia en Base de Datos**: Los mensajes del chat ahora se almacenan de forma persistente utilizando Firebase Cloud Firestore.
+- **Recuperación de Historial**: Al conectarse exitosamente, el cliente recibe automáticamente el historial con los últimos mensajes guardados en la sala de chat.
+- **Seguridad mediante Tokens**: El cliente ahora envía un ID Token generado por Firebase al establecer la conexión WebSocket, el cual es validado por el servidor (Firebase Admin SDK) para autorizar el acceso.
+- **Variables de Entorno**: Integración de la librería `dotenv` en el backend para gestionar credenciales sensibles y configuraciones (puertos, claves de servicio de Firebase) a través de un archivo `.env`.
+
 ## [1.0.0] - 2026-05-06
 
 ### Added
