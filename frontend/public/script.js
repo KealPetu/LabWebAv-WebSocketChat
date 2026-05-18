@@ -84,12 +84,12 @@ function connectWebSocket(username, token) {
         const data = JSON.parse(event.data);
         if (data.type === 'history') {
             data.data.forEach(msg => {
-                displayMessage(msg.username, msg.text, msg.timestamp);
+                addMessage(msg.username, msg.text, msg.timestamp);
             });
         }
         // Si es un mensaje normal de un usuario en tiempo real
         else {
-            displayMessage(data.username, data.text, data.timestamp);
+            addMessage(data.username, data.text, data.timestamp);
         }
     });
 
