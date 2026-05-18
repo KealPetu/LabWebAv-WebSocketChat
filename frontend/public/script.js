@@ -2,15 +2,20 @@ let ws;
 let connected = false;
 let currentUser = '';
 
+// Vistas
 const loginScreen = document.getElementById('loginScreen');
 const chatScreen = document.getElementById('chatScreen');
+// Inputs y botones
 const messages = document.getElementById('messages');
 const messageInput = document.getElementById('messageInput');
-const usernameInput = document.getElementById('usernameInput');
-const enterChatBtn = document.getElementById('enterChatBtn');
 const sendBtn = document.getElementById('sendBtn');
 const status = document.getElementById('status');
 const themeToggle = document.getElementById('themeToggle');
+// Login inputs y botones
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const registerBtn = document.getElementById('registerBtn');
 
 // 1. Lógica del Tema (Claro / Oscuro)
 themeToggle.addEventListener('click', () => {
@@ -26,58 +31,74 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
-// 2. Lógica de Ingreso (Validar usuario y mostrar chat)
-function enterChat() {
-    const username = usernameInput.value.trim();
-    if (!username) {
-        alert('Por favor ingresa tu nombre de usuario para continuar.');
-        usernameInput.focus();
+// 2. Función para manejar la autenticación
+async function authenticate(mode) {
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    if (!email || !password) {
+        alert("Por favor rellena todos los campos");
         return;
     }
-    currentUser = username;
 
-    // Ocultar login, mostrar chat
-    loginScreen.classList.add('d-none');
-    chatScreen.classList.remove('d-none');
+    try {
+        let userCredential;
+        if (mode === 'login') {
+            userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+        } else {
+            userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        }
 
-    // Iniciar conexión y preparar input
-    connect();
-    messageInput.focus();
+        // Obtener el Token de Seguridad
+        const token = await userCredential.user.getIdToken();
+        const username = userCredential.user.email.split('@')[0]; // Usar parte del email como nombre
+
+        // Conectar al WebSocket enviando el token
+        currentUser = username;
+        connectWebSocket(username, token);
+
+        loginScreen.classList.add('d-none');
+        chatScreen.classList.remove('d-none');
+
+    } catch (error) {
+        alert("Error de autenticación: " + error.message);
+    }
 }
 
-enterChatBtn.addEventListener('click', enterChat);
-usernameInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') enterChat();
-});
+loginBtn.addEventListener('click', () => authenticate('login'));
+registerBtn.addEventListener('click', () => authenticate('register'));
 
-// 3. Conexión WebSocket
-function connect() {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const backendPort = 3001;
-    ws = new WebSocket(`${protocol}//${location.hostname}:${backendPort}`);
+// 3. Conexión WebSocket con token de autenticación
+function connectWebSocket(username, token) {
+    // Pasamos el token en la URL como query parameter para que el backend lo valide
+    ws = new WebSocket(`ws://localhost:3001?username=${username}&token=${token}`);
 
     ws.onopen = () => {
         connected = true;
-        status.textContent = 'En línea';
-        status.className = 'badge bg-success';
-        sendBtn.disabled = false;
+        status.textContent = 'Conectado';
+        status.classList.remove('bg-secondary');
+        status.classList.add('bg-success');
     };
 
-    ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-        addMessage(msg.username, msg.text, msg.timestamp);
-    };
+    ws.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'history') {
+            data.data.forEach(msg => {
+                addMessage(msg.username, msg.text, msg.timestamp);
+            });
+        }
+        // Si es un mensaje normal de un usuario en tiempo real
+        else {
+            addMessage(data.username, data.text, data.timestamp);
+        }
+    });
 
     ws.onclose = () => {
         connected = false;
-        status.textContent = 'Reconectando...';
-        status.className = 'badge bg-danger';
-        sendBtn.disabled = true;
-        setTimeout(connect, 3000);
-    };
-
-    ws.onerror = (error) => {
-        console.error('Error WebSocket:', error);
+        status.textContent = 'Desconectado';
+        status.classList.remove('bg-success');
+        status.classList.add('bg-secondary');
+        console.log('Conexión cerrada');
     };
 }
 
@@ -119,6 +140,7 @@ function sendMessage() {
     // Se asume que el servidor repite el mensaje con un timestamp
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     ws.send(JSON.stringify({ username: currentUser, text, timestamp }));
+    addMessage(currentUser, text, timestamp);
     messageInput.value = '';
 }
 
@@ -131,4 +153,4 @@ messageInput.addEventListener('keypress', (e) => {
 });
 
 // Focus inicial en la pantalla de login
-usernameInput.focus();
+emailInput.focus();
